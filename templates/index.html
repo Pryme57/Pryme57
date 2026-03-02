@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAIR Risk Assessment</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark navbar-expand-lg">
+  <div class="container-xl">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
+      <i class="bi bi-shield-lock-fill fs-4"></i>
+      <span>FAIR Risk Analyser</span>
+    </a>
+    <span class="navbar-text small text-light opacity-75">
+      Factor Analysis of Information Risk &mdash; Quantitative Edition
+    </span>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero-band py-4">
+  <div class="container-xl">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <h1 class="h3 fw-bold mb-1">Security Risk Assessment</h1>
+        <p class="mb-0 opacity-75">
+          Complete the form below to generate a probabilistic, dollar-quantified risk
+          estimate using the <strong>FAIR</strong> methodology and Monte Carlo simulation
+          (10,000 iterations).
+        </p>
+      </div>
+      <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+        <a href="#fair-info" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-info-circle me-1"></i>What is FAIR?
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-xl py-4">
+
+  {% if error %}
+  <div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <strong>Calculation error:</strong> {{ error }}
+  </div>
+  {% endif %}
+
+  <form action="/assess" method="POST" id="fairForm" novalidate>
+
+    <!-- Step indicators -->
+    <div class="step-bar mb-4 d-flex gap-2 flex-wrap">
+      {% for label in ["Project Info", "Threat Frequency", "Vulnerability", "Primary Losses", "Secondary Losses"] %}
+      <div class="step-pill {% if loop.first %}active{% endif %}" data-step="{{ loop.index }}">
+        <span class="step-num">{{ loop.index }}</span>
+        <span class="step-label">{{ label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- ================================================================
+         SECTION 1 — Project Information
+    ================================================================ -->
+    <div class="form-section card shadow-sm" id="section-1">
+      <div class="card-header section-header">
+        <i class="bi bi-clipboard-data-fill me-2"></i>
+        <span>Section 1 &mdash; Project &amp; Asset Information</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="project_name">Project / Initiative Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="project_name" name="project_name"
+                   placeholder="e.g. Customer Portal v2" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="asset_type">Primary Asset Type <span class="text-danger">*</span></label>
+            <select class="form-select" id="asset_type" name="asset_type" required>
+              <option value="" disabled selected>Select asset type…</option>
+              <option>Customer / PII Data</option>
+              <option>Financial Records</option>
+              <option>Intellectual Property</option>
+              <option>Critical Infrastructure / OT</option>
+              <option>Internal Systems / Applications</option>
+              <option>Cloud Workloads</option>
+              <option>Physical Assets</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="industry">Industry / Sector</label>
+            <select class="form-select" id="industry" name="industry">
+              <option value="" disabled selected>Select industry…</option>
+              <option>Financial Services</option>
+              <option>Healthcare</option>
+              <option>Government / Public Sector</option>
+              <option>Technology</option>
+              <option>Retail / E-Commerce</option>
+              <option>Manufacturing / Industrial</option>
+              <option>Energy / Utilities</option>
+              <option>Education</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold" for="threat_community">Primary Threat Community <span class="text-danger">*</span></label>
+            <select class="form-select" id="threat_community" name="threat_community" required>
+              <option value="" disabled selected>Select threat actor…</option>
+              <option>External Attackers (Cybercriminals)</option>
+              <option>Nation-State Actors</option>
+              <option>Malicious Insiders</option>
+              <option>Negligent / Accidental Insiders</option>
+              <option>Third-Party / Supply Chain</option>
+              <option>Hacktivists</option>
+              <option>Natural / Environmental Events</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold" for="asset_description">Asset / Scope Description</label>
+            <textarea class="form-control" id="asset_description" name="asset_description" rows="2"
+                      placeholder="Briefly describe what is being assessed and the relevant threat scenario…"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         SECTION 2 — Threat Event Frequency (TEF)
+    ================================================================ -->
+    <div class="form-section card shadow-sm mt-4" id="section-2">
+      <div class="card-header section-header">
+        <i class="bi bi-activity me-2"></i>
+        <span>Section 2 &mdash; Threat Event Frequency (TEF)</span>
+        <button type="button" class="btn btn-sm btn-outline-light ms-auto" data-bs-toggle="modal" data-bs-target="#tef_modal">
+          <i class="bi bi-question-circle"></i> Help
+        </button>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          <i class="bi bi-info-circle text-primary me-1"></i>
+          <strong>TEF</strong> is how often a threat agent acts against your asset in a year.
+          Provide a plausible <em>minimum</em>, <em>most-likely</em>, and <em>maximum</em> frequency.
+          Use decimal values for less-than-annual events (e.g., 0.1 = once every 10 years).
+        </p>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" for="tef_min">Minimum (per year)</label>
+            <input type="number" class="form-control" id="tef_min" name="tef_min"
+                   min="0" step="0.01" value="0.5" required>
+            <div class="form-text">Optimistic / best case</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" for="tef_likely">Most Likely (per year)</label>
+            <input type="number" class="form-control" id="tef_likely" name="tef_likely"
+                   min="0" step="0.01" value="2" required>
+            <div class="form-text">Your best estimate</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold" for="tef_max">Maximum (per year)</label>
+            <input type="number" class="form-control" id="tef_max" name="tef_max"
+                   min="0" step="0.01" value="10" required>
+            <div class="form-text">Worst case / upper bound</div>
+          </div>
+        </div>
+        <div class="mt-3 freq-examples">
+          <span class="text-muted small fw-semibold">Quick examples:</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="setTEF(0.1,0.5,2)">Rare (&lt;1/yr)</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setTEF(1,3,12)">Occasional (monthly)</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setTEF(10,52,200)">Frequent (weekly+)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         SECTION 3 — Vulnerability (TCap vs CS)
+    ================================================================ -->
+    <div class="form-section card shadow-sm mt-4" id="section-3">
+      <div class="card-header section-header">
+        <i class="bi bi-shield-exclamation me-2"></i>
+        <span>Section 3 &mdash; Vulnerability Assessment</span>
+        <button type="button" class="btn btn-sm btn-outline-light ms-auto" data-bs-toggle="modal" data-bs-target="#vuln_modal">
+          <i class="bi bi-question-circle"></i> Help
+        </button>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          <i class="bi bi-info-circle text-primary me-1"></i>
+          <strong>Vulnerability</strong> = P(Threat Capability &gt; Control Strength).
+          Rate each factor on a 1–10 scale. Equal values yield ~50% vulnerability.
+        </p>
+        <div class="row g-4">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold d-flex justify-content-between" for="threat_capability">
+              <span>Threat Capability</span>
+              <span class="badge bg-primary" id="tcap_val">5</span>
+            </label>
+            <input type="range" class="form-range" id="threat_capability" name="threat_capability"
+                   min="1" max="10" step="1" value="5"
+                   oninput="document.getElementById('tcap_val').textContent = this.value; updateVuln()">
+            <div class="d-flex justify-content-between small text-muted mt-1">
+              <span>1 — Script Kiddie</span>
+              <span>5 — Skilled</span>
+              <span>10 — Nation-State</span>
+            </div>
+            <div class="capability-labels mt-2">
+              <div class="row g-1 small">
+                <div class="col-2 text-center p-1 cap-label" data-val="1">1</div>
+                <div class="col-2 text-center p-1 cap-label" data-val="2">2</div>
+                <div class="col-2 text-center p-1 cap-label" data-val="3">3</div>
+                <div class="col-2 text-center p-1 cap-label" data-val="4">4</div>
+                <div class="col-2 text-center p-1 cap-label" data-val="5">5</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold d-flex justify-content-between" for="control_strength">
+              <span>Control / Resistance Strength</span>
+              <span class="badge bg-success" id="cs_val">5</span>
+            </label>
+            <input type="range" class="form-range" id="control_strength" name="control_strength"
+                   min="1" max="10" step="1" value="5"
+                   oninput="document.getElementById('cs_val').textContent = this.value; updateVuln()">
+            <div class="d-flex justify-content-between small text-muted mt-1">
+              <span>1 — Minimal Controls</span>
+              <span>5 — Moderate</span>
+              <span>10 — Defence-in-Depth</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live vulnerability estimate -->
+        <div class="vuln-estimate mt-4 p-3 rounded">
+          <div class="d-flex align-items-center gap-3">
+            <div>
+              <div class="small text-muted fw-semibold">Estimated Base Vulnerability</div>
+              <div class="h3 mb-0 fw-bold" id="vuln_pct">50%</div>
+            </div>
+            <div class="flex-grow-1">
+              <div class="progress" style="height:14px">
+                <div class="progress-bar" id="vuln_bar" role="progressbar" style="width:50%"></div>
+              </div>
+            </div>
+            <div class="small text-muted" id="vuln_label">Moderate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         SECTION 4 — Primary Loss Magnitude
+    ================================================================ -->
+    <div class="form-section card shadow-sm mt-4" id="section-4">
+      <div class="card-header section-header">
+        <i class="bi bi-currency-dollar me-2"></i>
+        <span>Section 4 &mdash; Primary Loss Magnitude (per loss event)</span>
+        <button type="button" class="btn btn-sm btn-outline-light ms-auto" data-bs-toggle="modal" data-bs-target="#plm_modal">
+          <i class="bi bi-question-circle"></i> Help
+        </button>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          <i class="bi bi-info-circle text-primary me-1"></i>
+          Enter estimated dollar losses <em>per occurrence</em> of a loss event.
+          All values in <strong>USD</strong>. Use 0 if a category does not apply.
+        </p>
+
+        {% set primary_losses = [
+          ("prod",  "bi-person-workspace",   "Productivity / Operational Loss",   "Lost revenue, downtime costs, reduced output during the incident."),
+          ("resp",  "bi-fire",               "Response &amp; Recovery Cost",      "Incident response, forensics, remediation, overtime labour."),
+          ("repl",  "bi-arrow-repeat",       "Replacement / Rebuild Cost",        "Hardware, software, data reconstruction, and licensing costs.")
+        ] %}
+
+        {% for key, icon, title, desc in primary_losses %}
+        <div class="loss-row mb-4 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+          <div class="d-flex align-items-center mb-2 gap-2">
+            <i class="bi {{ icon }} text-primary"></i>
+            <span class="fw-semibold">{{ title | safe }}</span>
+            <span class="text-muted small">— {{ desc | safe }}</span>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ key }}_min">Minimum ($)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="{{ key }}_min" name="{{ key }}_min" min="0" step="100" value="0">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ key }}_likely">Most Likely ($)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="{{ key }}_likely" name="{{ key }}_likely" min="0" step="100" value="0">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ key }}_max">Maximum ($)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="{{ key }}_max" name="{{ key }}_max" min="0" step="100" value="0">
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- ================================================================
+         SECTION 5 — Secondary Loss Magnitude
+    ================================================================ -->
+    <div class="form-section card shadow-sm mt-4" id="section-5">
+      <div class="card-header section-header">
+        <i class="bi bi-diagram-3-fill me-2"></i>
+        <span>Section 5 &mdash; Secondary Loss Magnitude (per loss event)</span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          <i class="bi bi-info-circle text-primary me-1"></i>
+          Secondary losses arise from the reactions of secondary stakeholders (regulators, customers, partners).
+        </p>
+
+        {% set secondary_losses = [
+          ("fines", "bi-bank",           "Fines, Legal &amp; Regulatory",  "Regulatory fines, breach notification costs, legal defence fees, settlements."),
+          ("comp",  "bi-graph-down-arrow", "Competitive Advantage Loss",   "Loss of market share, delayed product launch, IP theft impact."),
+          ("rep",   "bi-chat-square-dots", "Reputation &amp; Brand Damage", "Customer churn, PR costs, lost future contracts, stock impact.")
+        ] %}
+
+        {% for key, icon, title, desc in secondary_losses %}
+        <div class="loss-row mb-4 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+          <div class="d-flex align-items-center mb-2 gap-2">
+            <i class="bi {{ icon }} text-warning"></i>
+            <span class="fw-semibold">{{ title | safe }}</span>
+            <span class="text-muted small">— {{ desc | safe }}</span>
+          </div>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ key }}_min">Minimum ($)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="{{ key }}_min" name="{{ key }}_min" min="0" step="100" value="0">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ key }}_likely">Most Likely ($)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="{{ key }}_likely" name="{{ key }}_likely" min="0" step="100" value="0">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-muted" for="{{ key }}_max">Maximum ($)</label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="{{ key }}_max" name="{{ key }}_max" min="0" step="100" value="0">
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
+      <p class="text-muted small mb-0"><span class="text-danger">*</span> Required fields</p>
+      <button type="submit" class="btn btn-primary btn-lg px-5 shadow" id="submitBtn">
+        <i class="bi bi-cpu-fill me-2"></i>Run FAIR Analysis
+      </button>
+    </div>
+
+  </form><!-- /fairForm -->
+
+</div><!-- /container -->
+
+<!-- FAIR Info Section -->
+<div id="fair-info" class="fair-info-band py-5 mt-2">
+  <div class="container-xl">
+    <h2 class="h4 fw-bold mb-4 text-center">How FAIR Works</h2>
+    <div class="row g-4 text-center">
+      <div class="col-md-4">
+        <div class="fair-card p-4 rounded h-100">
+          <i class="bi bi-diagram-2 display-5 mb-3"></i>
+          <h5 class="fw-bold">Risk Decomposition</h5>
+          <p class="small mb-0">FAIR breaks risk into <strong>Loss Event Frequency</strong> (how often) and
+          <strong>Probable Loss Magnitude</strong> (how much), giving precise, actionable numbers.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="fair-card p-4 rounded h-100">
+          <i class="bi bi-graph-up-arrow display-5 mb-3"></i>
+          <h5 class="fw-bold">Monte Carlo Simulation</h5>
+          <p class="small mb-0">Instead of a single point estimate, we run 10,000 simulations using
+          <strong>PERT distributions</strong> to capture full uncertainty ranges.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="fair-card p-4 rounded h-100">
+          <i class="bi bi-cash-coin display-5 mb-3"></i>
+          <h5 class="fw-bold">Dollar-Quantified Output</h5>
+          <p class="small mb-0">Risk is expressed in <strong>Annual Loss Exposure (ALE)</strong> — a dollar range
+          that maps directly to business decisions and ROI calculations for controls.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="tef_modal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-activity me-2"></i>Threat Event Frequency</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p>TEF represents <strong>how many times per year a threat agent acts against your asset</strong>, regardless of whether they succeed.</p>
+      <p>Consider:</p>
+      <ul>
+        <li>How often does the threat community target organisations like yours?</li>
+        <li>Does your asset's visibility (internet-exposed, public profile) increase contact?</li>
+        <li>Industry threat intelligence, breach reports, and red team data can calibrate this.</li>
+      </ul>
+      <p class="small text-muted">Use <code>0.1</code> for once every 10 years. Use <code>365</code> for daily attacks.</p>
+    </div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="vuln_modal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-shield-exclamation me-2"></i>Vulnerability</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p><strong>Vulnerability</strong> is the probability that a threat event results in a loss — i.e., that the attacker succeeds.</p>
+      <table class="table table-sm small">
+        <thead><tr><th>Threat Cap.</th><th>Control Strength</th><th>~Vulnerability</th></tr></thead>
+        <tbody>
+          <tr><td>5</td><td>5</td><td>50%</td></tr>
+          <tr><td>7</td><td>5</td><td>~88%</td></tr>
+          <tr><td>3</td><td>7</td><td>~2%</td></tr>
+          <tr><td>8</td><td>8</td><td>50%</td></tr>
+        </tbody>
+      </table>
+      <p class="small text-muted">The tool adds calibrated uncertainty around your base estimate using a PERT distribution.</p>
+    </div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="plm_modal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-currency-dollar me-2"></i>Loss Magnitude</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <p>Estimate the dollar impact <strong>per individual loss event</strong>. Ask yourself:</p>
+      <ul>
+        <li><strong>Productivity:</strong> If systems are down for X hours, what's the revenue/cost impact?</li>
+        <li><strong>Response:</strong> Forensics firm ($150–250/hr), internal IR team overtime, external comms?</li>
+        <li><strong>Replacement:</strong> Rebuild servers, restore data, re-license software?</li>
+        <li><strong>Fines:</strong> GDPR max 4% global revenue; HIPAA up to $1.9M per violation category.</li>
+        <li><strong>Competitive:</strong> If IP is stolen, what's the 3-year revenue impact?</li>
+        <li><strong>Reputation:</strong> Customer churn × LTV, PR spend, stock impact.</li>
+      </ul>
+    </div>
+  </div></div>
+</div>
+
+<footer class="footer-band py-3 mt-4">
+  <div class="container-xl text-center small text-muted">
+    Built on the <strong>FAIR</strong> (Factor Analysis of Information Risk) standard &mdash;
+    <a href="https://www.fairinstitute.org" target="_blank" rel="noopener">fairinstitute.org</a>.
+    Results are probabilistic estimates for decision support, not guarantees.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // ---- Live vulnerability indicator ----
+  function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+  function updateVuln() {
+    const tcap = parseInt(document.getElementById('threat_capability').value);
+    const cs   = parseInt(document.getElementById('control_strength').value);
+    const v    = sigmoid(tcap - cs) * 100;
+    document.getElementById('vuln_pct').textContent = v.toFixed(1) + '%';
+    const bar = document.getElementById('vuln_bar');
+    bar.style.width = v + '%';
+    const label = document.getElementById('vuln_label');
+    if (v < 20) {
+      bar.className = 'progress-bar bg-success';
+      label.textContent = 'Very Low';
+    } else if (v < 40) {
+      bar.className = 'progress-bar bg-info';
+      label.textContent = 'Low';
+    } else if (v < 60) {
+      bar.className = 'progress-bar bg-warning';
+      label.textContent = 'Moderate';
+    } else if (v < 80) {
+      bar.className = 'progress-bar bg-orange';
+      label.textContent = 'High';
+    } else {
+      bar.className = 'progress-bar bg-danger';
+      label.textContent = 'Very High';
+    }
+  }
+
+  // ---- TEF quick-fill buttons ----
+  function setTEF(min, likely, max) {
+    document.getElementById('tef_min').value    = min;
+    document.getElementById('tef_likely').value = likely;
+    document.getElementById('tef_max').value    = max;
+  }
+
+  // ---- Submit feedback ----
+  document.getElementById('fairForm').addEventListener('submit', function () {
+    const btn = document.getElementById('submitBtn');
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Simulating…';
+    btn.disabled  = true;
+  });
+
+  // Initialise
+  updateVuln();
+</script>
+</body>
+</html>

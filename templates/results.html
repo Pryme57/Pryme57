@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAIR Results — {{ form.project_name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark navbar-expand-lg">
+  <div class="container-xl">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="/">
+      <i class="bi bi-shield-lock-fill fs-4"></i>
+      <span>FAIR Risk Analyser</span>
+    </a>
+    <a href="/" class="btn btn-outline-light btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>New Assessment
+    </a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero-band py-4">
+  <div class="container-xl">
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1">{{ form.project_name }}</h1>
+        <div class="d-flex flex-wrap gap-2 opacity-75 small">
+          {% if form.asset_type %}<span><i class="bi bi-hdd-stack me-1"></i>{{ form.asset_type }}</span>{% endif %}
+          {% if form.industry %}<span><i class="bi bi-building me-1"></i>{{ form.industry }}</span>{% endif %}
+          {% if form.threat_community %}<span><i class="bi bi-person-fill-exclamation me-1"></i>{{ form.threat_community }}</span>{% endif %}
+          <span><i class="bi bi-calendar3 me-1"></i>{{ results.assessment_date }}</span>
+        </div>
+      </div>
+      <div class="text-end">
+        <div class="small text-light opacity-75 mb-1">Risk Level</div>
+        <span class="badge {{ results.badge }} fs-5 px-4 py-2 rounded-pill">
+          {{ results.level }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container-xl py-4">
+
+  <!-- Risk description banner -->
+  <div class="alert alert-{{ results.color }} alert-dismissible d-flex align-items-start gap-2 mb-4">
+    <i class="bi bi-shield-fill-{{ 'check' if results.level == 'Low' else 'exclamation' }} fs-5 mt-1 flex-shrink-0"></i>
+    <div>
+      <strong>{{ results.level }} Risk:</strong> {{ results.description }}
+      <br><span class="small opacity-75">Based on {{ "{:,}".format(results.simulations) }}-iteration Monte Carlo simulation using PERT distributions.</span>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+
+  <!-- ================================================================
+       Row 1 — Key Metrics Cards
+  ================================================================ -->
+  <div class="row g-3 mb-4">
+
+    <!-- ALE Card -->
+    <div class="col-md-6 col-xl-3">
+      <div class="metric-card card shadow-sm h-100 border-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="metric-icon bg-primary-subtle text-primary rounded p-2">
+              <i class="bi bi-cash-stack fs-5"></i>
+            </div>
+            <div class="small text-muted fw-semibold">Annual Loss Exposure</div>
+          </div>
+          <div class="h4 fw-bold mb-0">${{ "{:,.0f}".format(results.ale_50) }}</div>
+          <div class="small text-muted">Median (50th pct.)</div>
+          <div class="mt-2 pt-2 border-top d-flex justify-content-between small">
+            <span class="text-muted">10th pct: <strong>${{ "{:,.0f}".format(results.ale_10) }}</strong></span>
+            <span class="text-muted">90th pct: <strong>${{ "{:,.0f}".format(results.ale_90) }}</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEF Card -->
+    <div class="col-md-6 col-xl-3">
+      <div class="metric-card card shadow-sm h-100 border-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="metric-icon bg-warning-subtle text-warning rounded p-2">
+              <i class="bi bi-activity fs-5"></i>
+            </div>
+            <div class="small text-muted fw-semibold">Loss Event Frequency</div>
+          </div>
+          <div class="h4 fw-bold mb-0">{{ "%.2f"|format(results.lef_50) }}×/yr</div>
+          <div class="small text-muted">Median frequency</div>
+          <div class="mt-2 pt-2 border-top d-flex justify-content-between small">
+            <span class="text-muted">10th: <strong>{{ "%.2f"|format(results.lef_10) }}</strong></span>
+            <span class="text-muted">90th: <strong>{{ "%.2f"|format(results.lef_90) }}</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLM Card -->
+    <div class="col-md-6 col-xl-3">
+      <div class="metric-card card shadow-sm h-100 border-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="metric-icon bg-danger-subtle text-danger rounded p-2">
+              <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            </div>
+            <div class="small text-muted fw-semibold">Per-Event Loss (PLM)</div>
+          </div>
+          <div class="h4 fw-bold mb-0">${{ "{:,.0f}".format(results.plm_50) }}</div>
+          <div class="small text-muted">Median per event</div>
+          <div class="mt-2 pt-2 border-top d-flex justify-content-between small">
+            <span class="text-muted">10th: <strong>${{ "{:,.0f}".format(results.plm_10) }}</strong></span>
+            <span class="text-muted">90th: <strong>${{ "{:,.0f}".format(results.plm_90) }}</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vulnerability Card -->
+    <div class="col-md-6 col-xl-3">
+      <div class="metric-card card shadow-sm h-100 border-0">
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="metric-icon bg-info-subtle text-info rounded p-2">
+              <i class="bi bi-shield-half fs-5"></i>
+            </div>
+            <div class="small text-muted fw-semibold">Base Vulnerability</div>
+          </div>
+          <div class="h4 fw-bold mb-0">{{ "%.1f"|format(results.vulnerability * 100) }}%</div>
+          <div class="small text-muted">P(Threat succeeds)</div>
+          <div class="mt-2 pt-2 border-top d-flex justify-content-between small">
+            <span class="text-muted">Threat Cap: <strong>{{ results.tcap | int }}/10</strong></span>
+            <span class="text-muted">Control: <strong>{{ results.cs | int }}/10</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /Row 1 -->
+
+  <!-- ================================================================
+       Row 2 — FAIR Equation Banner
+  ================================================================ -->
+  <div class="fair-equation card border-0 shadow-sm mb-4 p-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-center gap-2 text-center">
+      <div class="eq-block">
+        <div class="small text-muted">Annual Loss Exposure</div>
+        <div class="fw-bold fs-5">${{ "{:,.0f}".format(results.ale_50) }}</div>
+      </div>
+      <div class="eq-op">=</div>
+      <div class="eq-block">
+        <div class="small text-muted">Loss Event Freq.</div>
+        <div class="fw-bold fs-5">{{ "%.2f"|format(results.lef_50) }}/yr</div>
+      </div>
+      <div class="eq-op">×</div>
+      <div class="eq-block">
+        <div class="small text-muted">Prob. Loss Magnitude</div>
+        <div class="fw-bold fs-5">${{ "{:,.0f}".format(results.plm_50) }}</div>
+      </div>
+      <div class="eq-op">=</div>
+      <div class="eq-block">
+        <div class="small text-muted">TEF × Vulnerability</div>
+        <div class="fw-bold fs-5">{{ "%.2f"|format(form.tef_likely) }} × {{ "%.1f"|format(results.vulnerability * 100) }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       Row 3 — Charts
+  ================================================================ -->
+  <div class="row g-4 mb-4">
+
+    <!-- ALE Distribution Histogram -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm h-100 border-0">
+        <div class="card-header bg-white border-bottom-0 pb-0">
+          <h5 class="mb-0 fw-bold"><i class="bi bi-bar-chart-fill text-primary me-2"></i>ALE Distribution</h5>
+          <p class="small text-muted mb-0">Annual Loss Exposure across all {{ "{:,}".format(results.simulations) }} simulated scenarios</p>
+        </div>
+        <div class="card-body">
+          <canvas id="aleHistogram" height="260"></canvas>
+        </div>
+        <div class="card-footer bg-white border-top-0">
+          <div class="row text-center small">
+            <div class="col">
+              <div class="text-muted">10th Pct.</div>
+              <div class="fw-bold">${{ "{:,.0f}".format(results.ale_10) }}</div>
+            </div>
+            <div class="col">
+              <div class="text-muted">25th Pct.</div>
+              <div class="fw-bold">${{ "{:,.0f}".format(results.ale_25) }}</div>
+            </div>
+            <div class="col border-start border-end">
+              <div class="text-muted">Median (50th)</div>
+              <div class="fw-bold text-primary">${{ "{:,.0f}".format(results.ale_50) }}</div>
+            </div>
+            <div class="col">
+              <div class="text-muted">75th Pct.</div>
+              <div class="fw-bold">${{ "{:,.0f}".format(results.ale_75) }}</div>
+            </div>
+            <div class="col">
+              <div class="text-muted">90th Pct.</div>
+              <div class="fw-bold">${{ "{:,.0f}".format(results.ale_90) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loss Breakdown Doughnut -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm h-100 border-0">
+        <div class="card-header bg-white border-bottom-0 pb-0">
+          <h5 class="mb-0 fw-bold"><i class="bi bi-pie-chart-fill text-warning me-2"></i>Loss Breakdown</h5>
+          <p class="small text-muted mb-0">Median per-event loss by category</p>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <canvas id="lossBreakdown" height="260"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /Row 3 -->
+
+  <!-- ================================================================
+       Row 4 — Detailed Breakdown Table + Risk Gauge
+  ================================================================ -->
+  <div class="row g-4 mb-4">
+
+    <!-- Loss Detail Table -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white"><h5 class="mb-0 fw-bold"><i class="bi bi-table text-secondary me-2"></i>Input Summary</h5></div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Category</th><th class="text-end">Minimum</th><th class="text-end">Most Likely</th><th class="text-end">Maximum</th></tr>
+            </thead>
+            <tbody>
+              <tr class="table-secondary"><td colspan="4" class="fw-semibold small text-uppercase ps-3">Threat Event Frequency (per year)</td></tr>
+              <tr>
+                <td class="ps-3">Annual Threat Events</td>
+                <td class="text-end">{{ "%.2f"|format(form.tef_min) }}</td>
+                <td class="text-end fw-semibold">{{ "%.2f"|format(form.tef_likely) }}</td>
+                <td class="text-end">{{ "%.2f"|format(form.tef_max) }}</td>
+              </tr>
+              <tr class="table-secondary"><td colspan="4" class="fw-semibold small text-uppercase ps-3">Primary Loss Magnitude ($ per event)</td></tr>
+              {% set rows = [
+                ("Productivity / Operational", "prod"),
+                ("Response &amp; Recovery",    "resp"),
+                ("Replacement / Rebuild",       "repl")
+              ] %}
+              {% for label, key in rows %}
+              <tr>
+                <td class="ps-3">{{ label | safe }}</td>
+                <td class="text-end">${{ "{:,.0f}".format(form[key+'_min']) }}</td>
+                <td class="text-end fw-semibold">${{ "{:,.0f}".format(form[key+'_likely']) }}</td>
+                <td class="text-end">${{ "{:,.0f}".format(form[key+'_max']) }}</td>
+              </tr>
+              {% endfor %}
+              <tr class="table-secondary"><td colspan="4" class="fw-semibold small text-uppercase ps-3">Secondary Loss Magnitude ($ per event)</td></tr>
+              {% set rows2 = [
+                ("Fines &amp; Legal / Regulatory", "fines"),
+                ("Competitive Advantage Loss",       "comp"),
+                ("Reputation &amp; Brand Damage",    "rep")
+              ] %}
+              {% for label, key in rows2 %}
+              <tr>
+                <td class="ps-3">{{ label | safe }}</td>
+                <td class="text-end">${{ "{:,.0f}".format(form[key+'_min']) }}</td>
+                <td class="text-end fw-semibold">${{ "{:,.0f}".format(form[key+'_likely']) }}</td>
+                <td class="text-end">${{ "{:,.0f}".format(form[key+'_max']) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Level + Vulnerability Gauge -->
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-white"><h5 class="mb-0 fw-bold"><i class="bi bi-speedometer2 text-danger me-2"></i>Risk Factors</h5></div>
+        <div class="card-body">
+
+          <div class="mb-4">
+            <div class="d-flex justify-content-between small mb-1">
+              <span class="text-muted fw-semibold">Vulnerability</span>
+              <span class="fw-bold">{{ "%.1f"|format(results.vulnerability * 100) }}%</span>
+            </div>
+            <div class="progress" style="height:12px">
+              <div class="progress-bar bg-{{ 'success' if results.vulnerability < 0.3 else ('warning' if results.vulnerability < 0.6 else 'danger') }}"
+                   style="width:{{ "%.0f"|format(results.vulnerability * 100) }}%"></div>
+            </div>
+            <div class="d-flex justify-content-between small text-muted mt-1">
+              <span>Threat Capability: {{ results.tcap | int }}/10</span>
+              <span>Control Strength: {{ results.cs | int }}/10</span>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <div class="d-flex justify-content-between small mb-1">
+              <span class="text-muted fw-semibold">Loss Event Frequency (median)</span>
+              <span class="fw-bold">{{ "%.2f"|format(results.lef_50) }}/yr</span>
+            </div>
+            {% set lef_pct = [results.lef_50 / (results.lef_90 + 0.01) * 100, 100] | min %}
+            <div class="progress" style="height:12px">
+              <div class="progress-bar bg-warning" style="width:{{ "%.0f"|format(lef_pct) }}%"></div>
+            </div>
+            <div class="d-flex justify-content-between small text-muted mt-1">
+              <span>Low: {{ "%.2f"|format(results.lef_10) }}</span>
+              <span>High: {{ "%.2f"|format(results.lef_90) }}</span>
+            </div>
+          </div>
+
+          <!-- Risk level scale -->
+          <div class="risk-scale mt-4 pt-3 border-top">
+            <div class="small text-muted fw-semibold mb-2 text-center">Risk Level Scale</div>
+            <div class="d-flex gap-1">
+              {% for lvl, cls in [("Low","bg-success"), ("Medium","bg-warning"), ("High","bg-danger"), ("Critical","bg-dark")] %}
+              <div class="flex-fill text-center rounded py-2 px-1 small fw-semibold text-white {{ cls }}
+                          {{ 'ring-active' if results.level == lvl else 'opacity-50' }}">
+                {{ lvl }}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /Row 4 -->
+
+  <!-- ================================================================
+       Row 5 — Recommendations
+  ================================================================ -->
+  <div class="card shadow-sm border-0 mb-5">
+    <div class="card-header bg-white">
+      <h5 class="mb-0 fw-bold"><i class="bi bi-lightbulb-fill text-warning me-2"></i>Recommendations</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        {% for rec in results.recommendations %}
+        <div class="col-md-6">
+          <div class="d-flex gap-2">
+            <i class="bi bi-check-circle-fill text-{{ results.color }} flex-shrink-0 mt-1"></i>
+            <span>{{ rec }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="alert alert-secondary mt-4 mb-0 small">
+        <i class="bi bi-info-circle me-1"></i>
+        <strong>Disclaimer:</strong> These results are probabilistic estimates based on user-provided inputs and a simplified FAIR model.
+        They are intended to support risk-informed decision-making and should be validated by a qualified risk practitioner before
+        being used for governance, compliance, or contractual purposes.
+        Risk thresholds (Low/Medium/High/Critical) may need calibration to your organisation's risk appetite.
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="d-flex gap-3 justify-content-center mb-5">
+    <a href="/" class="btn btn-primary">
+      <i class="bi bi-plus-circle me-2"></i>New Assessment
+    </a>
+    <button onclick="window.print()" class="btn btn-outline-secondary">
+      <i class="bi bi-printer me-2"></i>Print / Export PDF
+    </button>
+  </div>
+
+</div><!-- /container -->
+
+<footer class="footer-band py-3">
+  <div class="container-xl text-center small text-muted">
+    Built on the <strong>FAIR</strong> (Factor Analysis of Information Risk) standard &mdash;
+    <a href="https://www.fairinstitute.org" target="_blank" rel="noopener">fairinstitute.org</a>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  // ---- Data from server ----
+  const histData = {{ results.ale_histogram | tojson }};
+  const lossData = {{ results.loss_breakdown | tojson }};
+
+  // ---- ALE Histogram ----
+  new Chart(document.getElementById('aleHistogram'), {
+    type: 'bar',
+    data: {
+      labels: histData.labels,
+      datasets: [{
+        label: 'Simulated Scenarios',
+        data: histData.values,
+        backgroundColor: 'rgba(13, 110, 253, 0.65)',
+        borderColor: 'rgba(13, 110, 253, 0.9)',
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => 'ALE range: ' + ctx[0].label,
+            label: ctx => ctx.parsed.y.toLocaleString() + ' scenarios',
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { maxTicksLimit: 8, maxRotation: 30, font: { size: 10 } } },
+        y: { title: { display: true, text: '# Scenarios', font: { size: 11 } } }
+      }
+    }
+  });
+
+  // ---- Loss Breakdown Doughnut ----
+  const lossLabels  = Object.keys(lossData);
+  const lossValues  = Object.values(lossData);
+  const colours = [
+    '#0d6efd','#fd7e14','#dc3545','#ffc107','#6f42c1','#20c997'
+  ];
+
+  new Chart(document.getElementById('lossBreakdown'), {
+    type: 'doughnut',
+    data: {
+      labels: lossLabels,
+      datasets: [{
+        data: lossValues,
+        backgroundColor: colours,
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '55%',
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 14 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' $' + Math.round(ctx.parsed).toLocaleString()
+          }
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>

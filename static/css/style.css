@@ -1,0 +1,199 @@
+/* ============================================================
+   FAIR Risk Analyser — Custom Stylesheet
+   Complements Bootstrap 5
+============================================================ */
+
+/* ---- Root variables ---- */
+:root {
+  --fair-navy:   #0f2044;
+  --fair-blue:   #1565C0;
+  --fair-mid:    #1976D2;
+  --fair-light:  #e8f0fe;
+  --fair-accent: #00ACC1;
+  --body-bg:     #f4f6fb;
+}
+
+/* ---- Base ---- */
+body {
+  background-color: var(--body-bg);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #1a1a2e;
+}
+
+/* ---- Navbar ---- */
+.navbar {
+  background: var(--fair-navy) !important;
+  border-bottom: 3px solid var(--fair-blue);
+}
+
+/* ---- Hero band ---- */
+.hero-band {
+  background: linear-gradient(135deg, var(--fair-navy) 0%, var(--fair-blue) 100%);
+  color: #fff;
+}
+
+/* ---- Step bar ---- */
+.step-bar {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.step-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 2px solid #dee2e6;
+  border-radius: 40px;
+  padding: 6px 16px 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #6c757d;
+  white-space: nowrap;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.step-pill.active {
+  border-color: var(--fair-blue);
+  color: var(--fair-blue);
+  font-weight: 600;
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #dee2e6;
+  color: #6c757d;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.step-pill.active .step-num {
+  background: var(--fair-blue);
+  color: #fff;
+}
+
+/* ---- Form sections ---- */
+.form-section {
+  border: none;
+  border-radius: 12px;
+}
+
+.section-header {
+  background: linear-gradient(135deg, var(--fair-navy) 0%, var(--fair-blue) 100%);
+  color: #fff;
+  border-radius: 12px 12px 0 0 !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+}
+
+/* ---- Vulnerability estimate ---- */
+.vuln-estimate {
+  background: var(--fair-light);
+  border: 1px solid #c5cae9;
+}
+
+/* ---- Frequency quick-fill buttons ---- */
+.freq-examples .btn {
+  font-size: 0.78rem;
+}
+
+/* ---- Loss rows ---- */
+.loss-row:last-child {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* ---- FAIR info band ---- */
+.fair-info-band {
+  background: #fff;
+  border-top: 1px solid #dee2e6;
+}
+
+.fair-card {
+  background: var(--fair-light);
+  border: 1px solid #c5cae9;
+  color: var(--fair-navy);
+}
+
+.fair-card i {
+  color: var(--fair-blue);
+}
+
+/* ---- Footer ---- */
+.footer-band {
+  background: var(--fair-navy);
+  color: rgba(255,255,255,0.6);
+}
+.footer-band a { color: rgba(255,255,255,0.8); }
+.footer-band a:hover { color: #fff; }
+
+/* ============================================================
+   Results Page
+============================================================ */
+
+/* Metric cards */
+.metric-card {
+  border-radius: 12px;
+  transition: box-shadow 0.2s;
+}
+.metric-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
+}
+.metric-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+/* FAIR equation banner */
+.fair-equation {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e8f0fe, #f0f4ff);
+  border: 1px solid #c5cae9;
+}
+.eq-block {
+  min-width: 130px;
+}
+.eq-op {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #6c757d;
+  padding: 0 4px;
+}
+
+/* Risk scale */
+.ring-active {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(0,0,0,0.25);
+  opacity: 1 !important;
+}
+
+/* Chart containers */
+canvas {
+  max-height: 280px;
+}
+
+/* Print styles */
+@media print {
+  .navbar, .btn, footer, .alert-dismissible .btn-close { display: none !important; }
+  .card { break-inside: avoid; }
+  body { background: #fff; }
+  .hero-band { background: #0f2044 !important; -webkit-print-color-adjust: exact; }
+}
+
+/* ---- Responsive tweaks ---- */
+@media (max-width: 576px) {
+  .eq-op { display: none; }
+  .eq-block { min-width: 80px; }
+}
